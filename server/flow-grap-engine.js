@@ -1,8 +1,11 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+// const axios = require('axios');
+// const fs = require('fs');
+// const path = require('path');
+import path from 'path';
+import axios from 'axios';
+import * as fs from "fs";
 
-async function getOauthToken(clientid, clientsecret) {
+export async function getOauthToken(clientid, clientsecret) {
     const response = await axios.post(
         'https://developer.api.autodesk.com/authentication/v2/token',
         {
@@ -20,7 +23,7 @@ async function getOauthToken(clientid, clientsecret) {
     return response.data.access_token;
 };
 
-async function getResourceUploadUrl(accessToken, storageSpaceId, resourceId) {
+export async function getResourceUploadUrl(accessToken, storageSpaceId, resourceId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/storage/v1/spaces/${storageSpaceId}/resources/${resourceId}/upload-urls`,
         {
@@ -33,7 +36,7 @@ async function getResourceUploadUrl(accessToken, storageSpaceId, resourceId) {
     return response.data;
 };
 
-async function uploadToSignedUrl(signedUrl, pathToFile) {
+export async function uploadToSignedUrl(signedUrl, pathToFile) {
     const fileContent = await fs.promises.readFile(pathToFile, 'utf-8');
     const response = await axios.put(
         signedUrl,
@@ -42,7 +45,7 @@ async function uploadToSignedUrl(signedUrl, pathToFile) {
     return response.headers.etag;
 };
 
-async function completeUpload(accessToken, storageSpaceId, resourceId, uploadId, etag) {
+export async function completeUpload(accessToken, storageSpaceId, resourceId, uploadId, etag) {
     const response = await axios.post(
         `https://developer.api.autodesk.com/flow/storage/v1/spaces/${storageSpaceId}/uploads:complete`,
         {
@@ -64,7 +67,7 @@ async function completeUpload(accessToken, storageSpaceId, resourceId, uploadId,
     return response.data.urn;
 };
 
-async function submitJob(accessToken, queueId, bifrostGraphUrn, inputFileUrn, { bifrostGraphPath, inputFilePath, taskName }) {
+export async function submitJob(accessToken, queueId, bifrostGraphUrn, inputFileUrn, { bifrostGraphPath, inputFilePath, taskName }) {
     const bifrostJsonObj = require(bifrostGraphPath);
     if (!bifrostJsonObj) return null
 
@@ -174,7 +177,7 @@ async function submitJob(accessToken, queueId, bifrostGraphUrn, inputFileUrn, { 
     }
 }
 
-async function getTaskExecutions(accessToken, queueId, jobId) {
+export async function getTaskExecutions(accessToken, queueId, jobId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/compute/v1/queues/${queueId}/jobs/${jobId}/executions`,
         {
@@ -186,7 +189,7 @@ async function getTaskExecutions(accessToken, queueId, jobId) {
     return response.data;
 }
 
-async function getJob(accessToken, queueId, jobId) {
+export async function getJob(accessToken, queueId, jobId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/compute/v1/queues/${queueId}/jobs/${jobId}`,
         {
@@ -198,7 +201,7 @@ async function getJob(accessToken, queueId, jobId) {
     return response.data;
 }
 
-async function getLogs(accessToken, queueId, jobId) {
+export async function getLogs(accessToken, queueId, jobId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/compute/v1/queues/${queueId}/jobs/${jobId}/logs`,
         {
@@ -210,7 +213,7 @@ async function getLogs(accessToken, queueId, jobId) {
     return response.data;
 }
 
-async function getOutputs(accessToken, queueId, jobId) {
+export async function getOutputs(accessToken, queueId, jobId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/compute/v1/queues/${queueId}/jobs/${jobId}/outputs`,
         {
@@ -228,7 +231,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitForJobToComplete(accessToken, queueId, jobId) {
+export async function waitForJobToComplete(accessToken, queueId, jobId) {
     let job = await getJob(accessToken, queueId, jobId);
     while (job.status !== 'SUCCEEDED' && job.status !== 'FAILED' && job.status !== 'CANCELED') {
         await sleep(5000);
@@ -237,7 +240,7 @@ async function waitForJobToComplete(accessToken, queueId, jobId) {
     return job;
 }
 
-async function getDownloadUrlForResource(accessToken, spaceId, resourceId) {
+export async function getDownloadUrlForResource(accessToken, spaceId, resourceId) {
     const response = await axios.get(
         `https://developer.api.autodesk.com/flow/storage/v1/spaces/${spaceId}/resources/${resourceId}/download-url`,
         {
@@ -249,7 +252,7 @@ async function getDownloadUrlForResource(accessToken, spaceId, resourceId) {
     return response.data;
 }
 
-async function downloadFileFromSignedUrl(signedUrl, destination) {
+export async function downloadFileFromSignedUrl(signedUrl, destination) {
     const writeStream = fs.createWriteStream(destination);
     const response = await axios.get(
         signedUrl,
@@ -264,7 +267,7 @@ async function downloadFileFromSignedUrl(signedUrl, destination) {
     });
 }
 
-async function createDirectory(directory) {
+export async function createDirectory(directory) {
     try {
         await fs.promises.mkdir(directory, { recursive: true });
     } catch (e) {
@@ -272,18 +275,18 @@ async function createDirectory(directory) {
     }
 }
 
-module.exports = {
-    getOauthToken,
-    getResourceUploadUrl,
-    uploadToSignedUrl,
-    completeUpload,
-    submitJob,
-    getTaskExecutions,
-    getJob,
-    getLogs,
-    getOutputs,
-    waitForJobToComplete,
-    getDownloadUrlForResource,
-    downloadFileFromSignedUrl,
-    createDirectory
-}
+// module.exports = {
+//     getOauthToken,
+//     getResourceUploadUrl,
+//     uploadToSignedUrl,
+//     completeUpload,
+//     submitJob,
+//     getTaskExecutions,
+//     getJob,
+//     getLogs,
+//     getOutputs,
+//     waitForJobToComplete,
+//     getDownloadUrlForResource,
+//     downloadFileFromSignedUrl,
+//     createDirectory
+// }

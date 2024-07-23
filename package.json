@@ -2,6 +2,7 @@
   "name": "aps-fge",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "server/server.js",
   "scripts": {
     "run": "node server/server.js"

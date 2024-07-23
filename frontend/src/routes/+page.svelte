@@ -2,24 +2,7 @@
     import Modal from "./Modal.svelte";
 
     let jobs = [
-        {
-            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
-            taskName: "Add trees to terrain",
-            files: ["addTrees.json","plane.usd"],
-            status: "SCHEDULED"
-        },
-        {
-            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
-            taskName: "Add trees to terrain",
-            files: ["addTrees.json","plane.usd"],
-            status: "SCHEDULED"
-        },
-        {
-            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
-            taskName: "Add trees to terrain",
-            files: ["addTrees.json","plane.usd"],
-            status: "SCHEDULED"
-        }
+        
     ];
 
     let clientID = "";

@@ -1,17 +1,16 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const axios = require('axios').default;
-const fs = require('fs');
-const fileUpload = require('express-fileupload');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const morgan = require('morgan');
-const _ = require('lodash');
-const aps = require("./flow-grap-engine")
-
+import express from 'express';
+import path from 'path';
+import fileUpload from "express-fileupload";
+import cors from "cors";
+import bodyParser from 'body-parser';
+import morgan from 'morgan';
+import _ from "lodash";
+import * as aps from "./flow-grap-engine.js";
 
 const app = express();
+
+import {handler} from '../frontend/build/handler.js';
+
 
 let APS_ACCESS_TOKEN = ""
 let data = []
@@ -38,6 +37,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+// Add the frontend
+app.use(handler)
 
 // Public folder
 app.use(express.static('./public'));
