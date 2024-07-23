@@ -1,24 +1,48 @@
 <script>
     import Modal from "./Modal.svelte";
 
-    let jobs = [];
-    let clientID = "EaWFXup2bfhWIrCALMOmgqFLqs7Y9Qq6FPYmG7F3PP0o13wg";
-    let clientSecret = "0zb6od47E9ZPAGe5AWqCPecKCDVkb6SzFB1NisxV0WwlPAGgmwphkaLIJfGFYZVU";
+    let jobs = [
+        {
+            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
+            taskName: "Add trees to terrain",
+            files: ["addTrees.json","plane.usd"],
+            status: "SCHEDULED"
+        },
+        {
+            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
+            taskName: "Add trees to terrain",
+            files: ["addTrees.json","plane.usd"],
+            status: "SCHEDULED"
+        },
+        {
+            jobId: "26642e34-14fc-47c3-b762-ac146311e0b8",
+            taskName: "Add trees to terrain",
+            files: ["addTrees.json","plane.usd"],
+            status: "SCHEDULED"
+        }
+    ];
+
+    let clientID = "";
+    let clientSecret = "";
     let token = "";
     let showModal = false;
     let isAuthenticated = false;
 
     async function startNewJob() {
         if (validateFiles()) {
-            console.log("Working OKAY");
+            const button = document.getElementById('addTaskButton');
+            button.disabled = true;
+            button.innerHTML = 'Processing... <div class="spinner"></div>';
+
+            const submitBtn = document.getElementById("fileUpload");
 
             const fileInput = document.getElementById("fileUpload");
             const name = document.getElementById("taskName").value;
+            let selectedFiles = []
 
             const formData = new FormData();
-
-            // Assuming fileInput is an <input type="file" multiple> element
             for (const file of fileInput.files) {
+                selectedFiles.push(file.name)
                 formData.append('taskFiles', file);
             }
 
@@ -45,6 +69,7 @@
                     jobId: data.jobId,
                     queueId: data.queueId,
                     taskName: name,
+                    files: selectedFiles,
                     status: "QUEUED"
                 }
 
@@ -59,6 +84,9 @@
                 alert('There has been a problem with your fetch operation:', error)
                 console.error('There has been a problem with your fetch operation:', error);
             }
+
+            button.disabled = false;
+            button.innerHTML = 'Add Task';
         }
 
         async function checkStatus(jobId, queueId, intervalId) {
@@ -150,13 +178,12 @@
     }
 </script>
 
-<div class="flex-1 flex-col bg-gray-200 m-6 rounded-md p-8">
+<div class="flex flex-1 flex-col bg-gray-200 m-6 rounded-md p-8">
     <h1 class="pt-4 pb-4 font-medium">Client Details</h1>
-    <div class="flex row justify-between align-center">
+    <div class="flex row grow-0 justify-between align-center">
         <div class="flex row gap-2 items-center">
             <input
                 bind:value={clientID}
-                type="password"
                 placeholder="Client ID"
                 class="pt-2 pb-2 pl-4 pr-4 rounded-sm"
             />
@@ -190,33 +217,47 @@
             {/if}
         </div>
     </div>
-    <div class="h-[1px] w-full bg-gray-400 mt-4 mb-4" />
-    <div class="flex flex-col">
-        <h1 class="pb-2 font-medium">Tasks</h1>
+    <div class="h-[1px] w-full bg-gray-400 mt-4 mb-4 grow-0" />
+    <div class="flex flex-col flex-grow grow overflow-auto">
+        <h1 class="pt-4 pb-2 font-medium">Tasks</h1>
 
-        <table class="border-collapse">
-            <tr>
-                <th>No.</th>
-                <th>Task Name</th>
-                <th>Files</th>
-                <th>Status</th>
-                <th>View</th>
-            </tr>
-
-            {#each jobs as job}
-                <tr>
-                    <td class="lp-2 rp-2 tp-1 bp-1">No.</td>
-                    <td class="lp-2 rp-2 tp-1 bp-1">{job.taskName}</td>
-                    <td class="lp-2 rp-2 tp-1 bp-1">{job.jobId}</td>
-                    <td class="lp-2 rp-2 tp-1 bp-1">{job.status}</td>
-                    <td class="lp-2 rp-2 tp-1 bp-1">View</td>
-                </tr>
-            {/each}
-        </table>
+        <div id="table" class="flex-grow flex flex-col bg-gray-300">
+            <table class="w-full table-auto">
+                <thead class="h-[40px] bg-gray-400 border-gray-200 pt-4 pb-4">
+                    <th class="pl-2 pr-2 pt-1 pb-1">Job ID</th>
+                    <th class="pl-2 pr-2 pt-1 pb-1">Job Name</th>
+                    <th class="pl-2 pr-2 pt-1 pb-1">Files</th>
+                    <th class="pl-2 pr-2 pt-1 pb-1">Status</th>
+                    <th class="pl-2 pr-2 pt-1 pb-1">Results</th>
+                </thead>
+    
+                {#each jobs as job}
+                    <tbody class="h-[30px]">
+                        <tr>
+                            <td class="pl-2 pr-2 pt-1 pb-1">
+                                {job.jobId}
+                            </td>
+                            <td class="pl-2 pr-2 pt-1 pb-1">
+                                {job.taskName}
+                            </td>
+                            <td class="pl-2 pr-2 pt-1 pb-1">
+                                {job.files}
+                            </td>
+                            <td class="pl-2 pr-2 pt-1 pb-1">
+                                {job.status}
+                            </td>
+                            <td class="pl-2 pr-2 pt-1 pb-1">
+                                View
+                            </td>
+                        </tr>
+                    </tbody>
+                {/each}
+            </table>
+        </div>
     </div>
 </div>
 
-<Modal bind:showModal>
+<Modal bind:showModal class="w-1/2">
     <div
         slot="header"
         class="flex flex-row flex-1 justify-between items-center"
@@ -226,31 +267,46 @@
             on:click={() => {
                 showModal = false;
             }}
-            class="w-[30px] h-[30px] text-red-500">x</button
+            class="h-[30px] text-red-500">close</button
         >
     </div>
 
     <div class="flex flex-col pt-4 pb-4">
+        <label for="taskName" class="mb-2"
+            >Job Name</label
+        >
         <input
             placeholder="Task Name"
             id="taskName"
             class="pt-2 pb-2 pl-4 pr-4 rounded-sm"
         />
-        <label for="fileUpload" class="mt-2 mb-2"
-            >Upload your files (one .json and one .usd):</label
-        >
-        <input
-            type="file"
-            id="fileUpload"
-            name="fileUpload"
-            accept=".json, .usd"
-            multiple
-        />
+        <label for="fileUpload" class="mt-3 mb-2"
+            ></label>
+
+        <div class="flex items-center justify-center w-full">
+            <label for="fileUpload" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">2 files (One .USD and .JSON)</p>
+                </div>
+                <input 
+                    id="fileUpload" 
+                    type="file" 
+                    class="hidden" 
+                    name="fileUpload"
+                    accept=".json, .usd"
+                    multiple />
+            </label>
+        </div> 
 
         <div class="flex flex-row justify-end mt-4">
             <button
+                id="addTaskButton"
                 on:click={startNewJob}
-                class="pt-2 pb-2 w-full text-white bg-green-800 rounded-md"
+                class="button pt-2 pb-2 w-full text-white bg-green-800 rounded-md"
                 >Add Task</button
             >
         </div>
@@ -258,9 +314,51 @@
 </Modal>
 
 <style>
-    table,
-    th,
-    td {
-        border: 1px solid;
+    tbody tr {
+        border-bottom: 1px solid #9e9999;
+    }
+
+    thead th {
+        text-align: left;
+    }
+
+    #table {
+        border: 1px solid #9e9999;
+    }
+
+    .button {
+      padding: 10px 20px;
+      background-color: #258e48;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .button:disabled {
+      background-color: #5a6268;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 </style>

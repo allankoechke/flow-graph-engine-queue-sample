@@ -8,10 +8,12 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+<!-- on:click|self={() => dialog.close()} -->
+ 
 <dialog
 	bind:this={dialog}
 	on:close={() => (showModal = false)}
-	on:click|self={() => dialog.close()}
+	class="w-1/2"
 >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div on:click|stopPropagation class="flex flex-col bg-gray-200">
@@ -27,7 +29,7 @@
 
 <style>
 	dialog {
-		max-width: 32em;
+		/* max-width: 32em; */
 		border-radius: 0.2em;
 		border: none;
 		padding: 0;

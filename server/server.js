@@ -173,9 +173,10 @@ app.post('/status', extractToken, async (req, res) => {
         }
 
         let job = await aps.getJob(req.token, req.body.queueId, req.body.jobId);
-        console.log(job)
+        console.log(JSON.stringify(job))
 
         if (job.status !== 'SUCCEEDED' && job.status !== 'FAILED' && job.status !== 'CANCELED') {
+            console.log("Job Status: ", job.status)
             return res.status(200).send({
                 status: job.status,
                 logs: [],
@@ -200,6 +201,7 @@ app.post('/status', extractToken, async (req, res) => {
         logs.results.forEach(async (result, index) => {
             const downloadUrl = await aps.getDownloadUrlForResource(req.token, result.spaceId, result.resourceId);
             let log = path.join(logsDirectory, `log_${index}.log`)
+            logsArray.push(log.toString())
             resObj.logs.push(log.toString())
             await aps.downloadFileFromSignedUrl(downloadUrl.url, log);
         });
@@ -213,9 +215,9 @@ app.post('/status', extractToken, async (req, res) => {
             try {
                 const downloadUrl = await aps.getDownloadUrlForResource(req.token, result.spaceId, result.resourceId);
                 const outputFile = path.join(outputsDirectory, `output_${index}.usd`);
+                outputArray.push(outputFile.toString())
                 resObj.logs.push(outputFile.toString())
                 await aps.downloadFileFromSignedUrl(downloadUrl.url, outputFile);
-                console.log(outputFile, outputFile.toString())
             } catch (err) {
                 console.log("Output Error: ", err)
             }
@@ -226,12 +228,13 @@ app.post('/status', extractToken, async (req, res) => {
             const taskError = taskExecutions?.results?.[0].error;
             if (taskError) {
                 console.log(JSON.stringify(taskError));
-                resObj.error = taskError;
+                resObj.error = JSON.stringify(taskError);
             }
         }
 
         console.log('Done')
         console.log(resObj)
+        console.log(logsArray, "\n", outputArray)
 
         return res.status(200).send(resObj)
 
