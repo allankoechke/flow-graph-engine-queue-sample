@@ -1,15 +1,15 @@
 <script>
     import Modal from "./Modal.svelte";
+    import Tag from "./Tag.svelte";
 
-    let jobs = [
-        
-    ];
+    let jobs = [];
 
     let clientID = "";
     let clientSecret = "";
     let token = "";
     let showModal = false;
     let isAuthenticated = false;
+    let anotherStatusRequestPending = false;
 
     async function startNewJob() {
         if (validateFiles()) {
@@ -46,17 +46,23 @@
 
                 const data = await response.json();
 
-                console.log(data)
+                // console.log(data)
 
                 var newJob = {
                     jobId: data.jobId,
                     queueId: data.queueId,
                     taskName: name,
                     files: selectedFiles,
-                    status: "QUEUED"
+                    status: "QUEUED",
+                    outputs: [],
+                    logs: []
                 }
 
                 jobs = [...jobs, newJob]
+
+                document.getElementById("fileUpload").value = "";
+                document.getElementById("taskName").value = "";
+                document.getElementById("modalDialog").close();
 
                 const intervalId = setInterval(() => {
                     // Call the function and pass the handle (intervalId) to it
@@ -64,8 +70,8 @@
                 }, 5000);
 
             } catch (error) {
-                alert('There has been a problem with your fetch operation:', error)
                 console.error('There has been a problem with your fetch operation:', error);
+                alert('There has been a problem with your fetch operation:', error)
             }
 
             button.disabled = false;
@@ -73,28 +79,33 @@
         }
 
         async function checkStatus(jobId, queueId, intervalId) {
-            const response = await fetch("http://127.0.0.1:3000/status", {
-                method: "POST",
-                body: JSON.stringify({ jobId, queueId }),
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-            });
+            if(!anotherStatusRequestPending) {
+                anotherStatusRequestPending = true;
+                const response = await fetch("http://127.0.0.1:3000/status", {
+                    method: "POST",
+                    body: JSON.stringify({ jobId, queueId }),
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                });
 
-            if(!response.ok) {
-                alert("Check Status Failed")
-                // console.log(response.error())
-                clearInterval(intervalId);
-            }
-            
-            else {
-                const data = await response.json()
-                jobs = jobs.map(job => job.jobId === jobId ? { ...job, status: data.status} : job);
+                if(!response.ok) {
 
-                if (data.status === 'SUCCEEDED' || data.status === 'FAILED' || data.status === 'CANCELED') {
+                    alert("Check Status Failed")
                     clearInterval(intervalId);
                 }
+                
+                else {
+                    const data = await response.json()
+                    jobs = jobs.map(job => job.jobId === jobId ? { ...job, status: data.status, logs: data.logs, outputs: data.outputs} : job);
+
+                    if (data.status === 'SUCCEEDED' || data.status === 'FAILED' || data.status === 'CANCELED') {
+                        clearInterval(intervalId);
+                    }
+                }
+
+                anotherStatusRequestPending = false;
             }
         }
 
@@ -142,22 +153,38 @@
             return;
         }
 
-        const response = await fetch("http://127.0.0.1:3000/login", {
-            method: "POST",
-            body: JSON.stringify({ clientID, clientSecret }),
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
+        try {
+            const response = await fetch("http://127.0.0.1:3000/login", {
+                method: "POST",
+                body: JSON.stringify({ clientID, clientSecret }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
 
-        if(!response.ok) {
-            console.log(response.error())
-        } else {
-            const data = await response.json()
-            // console.log(data)
-            isAuthenticated = true;
-            token = data.token;
+            if(!response?.ok) {
+                console.log(response.error())
+            } else {
+                const data = await response.json()
+                // console.log(data)
+                isAuthenticated = true;
+                token = data.token;
+            }
+        } catch(err) {
+            console.log(err)
         }
+    }
+
+    let selectedFiles = [];
+
+    // Function to handle the change event
+    function handleFileChange(event) {
+        // Get the selected files from the input element
+        const files = event.target.files;
+        // Convert the FileList to an array and update the selectedFiles variable
+        selectedFiles = Array.from(files);
+
+        console.log(selectedFiles)
     }
 </script>
 
@@ -186,7 +213,7 @@
                 </div>
             {:else}
                 <button
-                    class="pt-2 pb-2 pl-4 pr-4 bg-green-800 text-white"
+                    class="button pt-2 pb-2 pl-4 pr-4 bg-green-800 text-white"
                     on:click={authenticateUser}>Authenticate</button
                 >
             {/if}
@@ -230,7 +257,26 @@
                                 {job.status}
                             </td>
                             <td class="pl-2 pr-2 pt-1 pb-1">
-                                View
+                                {#if job.status !== 'SUCCEEDED' && job.status !== 'FAILED' && job.status !== 'CANCELED' }
+                                    <h1>--</h1>
+                                {:else if job.logs.length === 0 && job.outputs.length === 0}
+                                    <h1>[]</h1>
+                                {:else}
+                                    {#each job.outputs as item}
+                                        <Tag 
+                                            filePath={item}
+                                            fileName={item.replaceAll("\\", "/").split("/").pop()}
+                                        />
+                                    {/each}
+
+                                    {#each job.logs as item}
+                                        <Tag 
+                                            filePath={item}
+                                            fileName={item.replaceAll("\\", "/").split("/").pop()}
+                                        />
+                                    {/each}
+
+                                {/if}
                             </td>
                         </tr>
                     </tbody>
@@ -272,8 +318,17 @@
                     <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                     </svg>
-                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">2 files (One .USD and .JSON)</p>
+                    {#if selectedFiles.length=== 2}
+                        <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Files selected</span> (click to change)</p>
+                        <ul class="p-0">
+                            {#each selectedFiles as selFile}
+                                <li class="text-xs text-gray-700 dark:text-gray-600">- {selFile.name}</li>                            
+                            {/each}
+                        </ul>
+                    {:else}
+                        <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Select two files (One .USD and .JSON)</p>
+                    {/if}
                 </div>
                 <input 
                     id="fileUpload" 
@@ -281,6 +336,7 @@
                     class="hidden" 
                     name="fileUpload"
                     accept=".json, .usd"
+                    on:change={handleFileChange}
                     multiple />
             </label>
         </div> 

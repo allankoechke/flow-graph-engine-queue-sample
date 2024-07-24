@@ -5,9 +5,10 @@ import cors from "cors";
 import bodyParser from 'body-parser';
 import morgan from 'morgan';
 import _ from "lodash";
+import { exec } from 'child_process';
 import * as aps from "./flow-grap-engine.js";
 
-const __dirname = path.join(path.resolve(path.dirname('')), 'server'); 
+const __dirname = path.join(path.resolve(path.dirname('')), "public"); 
 
 console.log(__dirname)
 
@@ -40,7 +41,7 @@ app.use(morgan('dev'));
 // app.use(handler)
 
 // Public folder
-// app.use(express.static('./public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 function validateFiles(req, res) {
     const files = req.files.taskFiles;
@@ -139,11 +140,11 @@ app.post('/task', extractToken, async (req, res) => {
             let inputUsdName = `${now}-${inputUsd.name}`
 
             console.log("Saving files started ...")
-            bifrostGraph.mv('./uploads/' + bifrostGraphName);
-            inputUsd.mv('./uploads/' + inputUsdName);
+            bifrostGraph.mv('./public/uploads/' + bifrostGraphName);
+            inputUsd.mv('./public/uploads/' + inputUsdName);
             console.log("Saving files finished ...")
 
-            return await prepareRequest(req, res, req.token, path.join(__dirname, `../uploads/${bifrostGraphName}`), path.join(__dirname, `../uploads/${inputUsdName}`))
+            return await prepareRequest(req, res, req.token, path.join(__dirname, `uploads/${bifrostGraphName}`), path.join(__dirname, `uploads/${inputUsdName}`))
         }
     } catch (err) {
         console.log("Request failed: ", err)
@@ -189,7 +190,7 @@ app.post('/status', extractToken, async (req, res) => {
         var resObj = { status: job.status, error: null, outputs: [], logs: [] };
 
         // Downloading logs for the job
-        const logsDirectory = path.join(__dirname, `../.outputs/${ts}/.logs`);
+        const logsDirectory = path.join(__dirname, `public/outputs/${ts}/logs`);
         console.log(`Downloading logs in ${logsDirectory}`);
         aps.createDirectory(logsDirectory);
         const logs = await aps.getLogs(req.token, queueId, jobId);
@@ -206,7 +207,7 @@ app.post('/status', extractToken, async (req, res) => {
         await Promise.all(downloadLogPromises);
 
         // Downloading outputs for the job
-        const outputsDirectory = path.join(__dirname, `../.outputs/${ts}`);
+        const outputsDirectory = path.join(__dirname, `public/outputs/${ts}`);
         console.log(`Downloading outputs in ${outputsDirectory}`);
         aps.createDirectory(outputsDirectory);
         const outputs = await aps.getOutputs(req.token, queueId, jobId);
@@ -240,6 +241,15 @@ app.post('/status', extractToken, async (req, res) => {
         res.status(500).send(err);
     }
 });
+
+app.use("/dir", async(req, res) => {
+    if(!req.body.path) {
+        console.log("Path not specified")
+        return res.status(403).send("No file path specified")
+    }
+
+    return openDirectory(res, req.body.path)
+})
 
 async function prepareRequest(req, res, access_token, bifrostGraphPath, inputFilePath) {
     console.log("Prepare request ...")
@@ -280,6 +290,40 @@ async function prepareRequest(req, res, access_token, bifrostGraphPath, inputFil
         queueId
     });
 };
+
+function openDirectory(res, dirPath) {
+    let absolutePath = path.dirname(dirPath).replace(/[\\\/]+$/, '').replace(/\/+/g, '\\').replace(/\\\\+/g, '\\'); // .replace(/\//g, '\\');
+    // absolutePath = absolutePath.replace(/\\\\/, "\\")
+    console.log(absolutePath.toString())
+    
+    let command;
+
+    switch (process.platform) {
+        case 'win32': // Windows
+            command = `explorer "${absolutePath}"`;
+            break;
+        case 'darwin': // macOS
+            command = `open "${absolutePath}"`;
+            break;
+        case 'linux': // Linux
+            command = `xdg-open "${absolutePath}"`;
+            break;
+        default:
+            console.error('Unsupported platform:', process.platform);
+            return res.status(404).send({"error": "Unsupported platform"})
+    }
+
+    exec(command, (error) => {
+        if (error) {
+            console.error('Error opening directory:', error);
+            return res.send({"error": "Failed to open file directory"})
+        } else {
+            console.log('Directory opened successfully:', absolutePath);
+            return res.status(200).send({"message": "Folder opened"})
+        }
+    });
+
+}
 
 const PORT = 3000;
 app.listen(PORT, () => {

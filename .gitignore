@@ -2,6 +2,7 @@ node_modules
 uploads
 .logs
 .outputs
+outputs
 
 # Output
 .output

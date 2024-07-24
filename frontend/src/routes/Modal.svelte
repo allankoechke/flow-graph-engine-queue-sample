@@ -14,6 +14,7 @@
 	bind:this={dialog}
 	on:close={() => (showModal = false)}
 	class="w-1/2"
+	id="modalDialog"
 >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div on:click|stopPropagation class="flex flex-col bg-gray-200">
