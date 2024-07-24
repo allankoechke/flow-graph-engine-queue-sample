@@ -68,7 +68,8 @@ export async function completeUpload(accessToken, storageSpaceId, resourceId, up
 };
 
 export async function submitJob(accessToken, queueId, bifrostGraphUrn, inputFileUrn, { bifrostGraphPath, inputFilePath, taskName }) {
-    const bifrostJsonObj = require(bifrostGraphPath);
+    const bifrostJsonObj = JSON.parse(fs.readFileSync(bifrostGraphPath));
+    console.log(bifrostJsonObj, JSON.stringify(bifrostJsonObj))
     if (!bifrostJsonObj) return null
 
     try {

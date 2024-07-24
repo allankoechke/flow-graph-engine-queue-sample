@@ -7,13 +7,11 @@ import morgan from 'morgan';
 import _ from "lodash";
 import * as aps from "./flow-grap-engine.js";
 
+const __dirname = path.join(path.resolve(path.dirname('')), 'server'); 
+
+console.log(__dirname)
+
 const app = express();
-
-import {handler} from '../frontend/build/handler.js';
-
-
-let APS_ACCESS_TOKEN = ""
-let data = []
 
 // Middleware to extract access token
 function extractToken(req, res, next) {
@@ -39,10 +37,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // Add the frontend
-app.use(handler)
+// app.use(handler)
 
 // Public folder
-app.use(express.static('./public'));
+// app.use(express.static('./public'));
 
 function validateFiles(req, res) {
     const files = req.files.taskFiles;
@@ -76,6 +74,7 @@ function validateFiles(req, res) {
 }
 
 app.post('/login', async (req, res) => {
+    console.log("Logging in ...")
     if (!req.body.clientID) {
         return res.send({
             status: false,
@@ -139,22 +138,16 @@ app.post('/task', extractToken, async (req, res) => {
             let bifrostGraphName = `${now}-${bifrostGraph.name}`
             let inputUsdName = `${now}-${inputUsd.name}`
 
+            console.log("Saving files started ...")
             bifrostGraph.mv('./uploads/' + bifrostGraphName);
             inputUsd.mv('./uploads/' + inputUsdName);
+            console.log("Saving files finished ...")
 
-            access_token = req.token
-            return await prepareRequest(req, res, access_token, path.join(__dirname, `../uploads/${bifrostGraphName}`), path.join(__dirname, `../uploads/${inputUsdName}`))
-
-            //send response
-            // res.send({
-            //     status: true,
-            //     message: 'File is uploaded',
-            //     data: {
-            //     }
-            // });
+            return await prepareRequest(req, res, req.token, path.join(__dirname, `../uploads/${bifrostGraphName}`), path.join(__dirname, `../uploads/${inputUsdName}`))
         }
     } catch (err) {
-        res.status(500).send(err);
+        console.log("Request failed: ", err)
+        res.status(500).send({error: err.toString()});
     }
 });
 
@@ -200,7 +193,7 @@ app.post('/status', extractToken, async (req, res) => {
         console.log(`Downloading logs in ${logsDirectory}`);
         aps.createDirectory(logsDirectory);
         const logs = await aps.getLogs(req.token, queueId, jobId);
-        logs.results.forEach(async (result, index) => {
+        const downloadLogPromises = logs.results.map(async (result, index) => {
             const downloadUrl = await aps.getDownloadUrlForResource(req.token, result.spaceId, result.resourceId);
             let log = path.join(logsDirectory, `log_${index}.log`)
             logsArray.push(log.toString())
@@ -208,22 +201,29 @@ app.post('/status', extractToken, async (req, res) => {
             await aps.downloadFileFromSignedUrl(downloadUrl.url, log);
         });
 
+        console.log("Waiting for logs to be downloaded ...")
+        // Wait for files to be written
+        await Promise.all(downloadLogPromises);
+
         // Downloading outputs for the job
         const outputsDirectory = path.join(__dirname, `../.outputs/${ts}`);
         console.log(`Downloading outputs in ${outputsDirectory}`);
         aps.createDirectory(outputsDirectory);
         const outputs = await aps.getOutputs(req.token, queueId, jobId);
-        outputs.results.forEach(async (result, index) => {
+        const downloadPromises = outputs.results.map(async (result, index) => {
             try {
                 const downloadUrl = await aps.getDownloadUrlForResource(req.token, result.spaceId, result.resourceId);
                 const outputFile = path.join(outputsDirectory, `output_${index}.usd`);
-                outputArray.push(outputFile.toString())
-                resObj.logs.push(outputFile.toString())
+                resObj.outputs.push(outputFile.toString());
                 await aps.downloadFileFromSignedUrl(downloadUrl.url, outputFile);
             } catch (err) {
-                console.log("Output Error: ", err)
+                console.log("Output Error: ", err);
             }
         });
+
+        console.log("Downloading the output files, this may take some time")
+        // Wait for files to be written
+        await Promise.all(downloadPromises);
 
         if (job.status === 'FAILED') {
             const taskExecutions = await aps.getTaskExecutions(req.token, queueId, jobId);
@@ -234,10 +234,6 @@ app.post('/status', extractToken, async (req, res) => {
             }
         }
 
-        console.log('Done')
-        console.log(resObj)
-        console.log(logsArray, "\n", outputArray)
-
         return res.status(200).send(resObj)
 
     } catch (err) {
@@ -246,6 +242,7 @@ app.post('/status', extractToken, async (req, res) => {
 });
 
 async function prepareRequest(req, res, access_token, bifrostGraphPath, inputFilePath) {
+    console.log("Prepare request ...")
     const storageSpaceId = 'scratch:@default';
 
     // use the personal queue for our app
