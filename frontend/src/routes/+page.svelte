@@ -154,6 +154,7 @@
         }
 
         try {
+            console.log("Sending request ...")
             const response = await fetch("http://127.0.0.1:3000/login", {
                 method: "POST",
                 body: JSON.stringify({ clientID, clientSecret }),
@@ -163,15 +164,15 @@
             });
 
             if(!response?.ok) {
-                console.log(response.error())
+                console.log("Error: ", response)
             } else {
                 const data = await response.json()
-                // console.log(data)
+                console.log(data)
                 isAuthenticated = true;
                 token = data.token;
             }
         } catch(err) {
-            console.log(err)
+            console.log("Error: ", err)
         }
     }
 
@@ -213,7 +214,7 @@
                 </div>
             {:else}
                 <button
-                    class="button pt-2 pb-2 pl-4 pr-4 bg-green-800 text-white"
+                    class="pt-2 pb-2 pl-4 pr-4 bg-green-800 text-white button"
                     on:click={authenticateUser}>Authenticate</button
                 >
             {/if}

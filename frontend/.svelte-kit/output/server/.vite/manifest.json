@@ -53,7 +53,7 @@
       "_ssr.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.Bu6rkFqR.css"
+      "_app/immutable/assets/_layout.BRRvMoTC.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -65,7 +65,7 @@
       "_ssr.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.aKJbHb5u.css"
+      "_app/immutable/assets/_page.Cjdyt10T.css"
     ]
   }
 }

@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import _ from "lodash";
 import { exec } from 'child_process';
 import * as aps from "./flow-grap-engine.js";
+import {handler} from "../frontend-build/handler.js"
 
 const __dirname = path.join(path.resolve(path.dirname('')), "public"); 
 
@@ -36,12 +37,6 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('dev'));
-
-// Add the frontend
-// app.use(handler)
-
-// Public folder
-app.use(express.static(path.join(__dirname, 'public')));
 
 function validateFiles(req, res) {
     const files = req.files.taskFiles;
@@ -322,8 +317,13 @@ function openDirectory(res, dirPath) {
             return res.status(200).send({"message": "Folder opened"})
         }
     });
-
 }
+
+// Public folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Add the frontend
+app.use(handler)
 
 const PORT = 3000;
 app.listen(PORT, () => {
