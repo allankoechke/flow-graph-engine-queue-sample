@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "server/server.js",
+  "main": "server.js",
   "scripts": {
-    "run": "node server/server.js"
+    "run": "node server.js",
+    "start": "node server.js"
   },
   "author": "",
   "license": "ISC",
@@ -25,9 +26,7 @@
   "nodemonConfig": {
     "ignore": [
       "node_modules/",
-      "public/",
       "uploads/",
-      "frontend/",
       ".outputs/"
     ]
   }
